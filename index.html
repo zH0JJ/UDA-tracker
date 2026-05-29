@@ -409,8 +409,8 @@
                     </div>
                     <div class="band-row">
                         <div class="band-label">Superannuation</div>
-                        <span style="flex: 0 0 20px;">£</span>
-                        <input type="number" id="superannuation" placeholder="0" min="0" step="0.01" value="0">
+                        <input type="number" id="superannuation" placeholder="0" min="0" max="100" step="0.01" value="0">
+                        <span style="flex: 0 0 20px;">%</span>
                     </div>
                     <button type="button" id="calculateBtn">Calculate</button>
                 </div>
@@ -648,7 +648,7 @@
 
         function calculateFinancials() {
             const labFee = parseFloat(document.getElementById('labFee').value) || 0;
-            const superannuation = parseFloat(document.getElementById('superannuation').value) || 0;
+            const superannuationPercent = parseFloat(document.getElementById('superannuation').value) || 0;
 
             const now = new Date();
             const currentYear = now.getFullYear();
@@ -663,7 +663,7 @@
             });
 
             const gross = monthTotal * UDA_VALUE;
-            const superAmount = (gross * superannuation) / 100;
+            const superAmount = (gross * superannuationPercent) / 100;
             const net = gross - labFee - superAmount;
 
             document.getElementById('grossEarnings').textContent = `£${gross.toFixed(2)}`;
