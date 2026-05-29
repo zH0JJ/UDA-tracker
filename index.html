@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="UDA Tracker">
     <meta name="theme-color" content="#0f0f0f">
-    <link rel="manifest" href="data:application/json,{\"name\":\"UDA Tracker\",\"short_name\":\"UDA Tracker\",\"description\":\"Track your UDA production by band\",\"display\":\"standalone\",\"background_color\":\"#0f0f0f\",\"theme_color\":\"#00d4ff\",\"orientation\":\"portrait-primary\"}">
     <title>UDA Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -99,6 +98,7 @@
             margin-top: 10px;
         }
         button:active { transform: scale(0.95); }
+        button:hover { opacity: 0.9; }
         .summary {
             background: linear-gradient(135deg, #00d4ff22 0%, #a78bfa22 100%);
             border: 1px solid #00d4ff44;
@@ -178,7 +178,7 @@
             text-align: center;
             font-size: 0.9em;
         }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .setup-screen {
             display: flex;
             flex-direction: column;
@@ -209,7 +209,7 @@
 </head>
 <body>
     <div class="container">
-        <div id="setupScreen" class="setup-screen">
+        <div id="setupScreen">
             <div class="header">
                 <h1>UDA Tracker</h1>
                 <p>Production Tracker</p>
@@ -219,9 +219,9 @@
                 <p class="info-text">Enter your UDA value in pounds (£). This is used to calculate your earnings.</p>
                 <div class="band-row" style="margin-top: 20px;">
                     <span style="flex: 0 0 20px;">£</span>
-                    <input type="number" id="udaValueInput" placeholder="e.g. 8" min="0" step="0.01" value="8">
+                    <input type="number" id="udaValueInput" placeholder="e.g. 8" min="0" step="0.01" value="">
                 </div>
-                <button type="button" onclick="setUDAValue()">Start Tracking</button>
+                <button type="button" id="startBtn">Start Tracking</button>
             </div>
         </div>
 
@@ -258,9 +258,9 @@
                     <div class="summary-value" id="totalUDAs">0</div>
                 </div>
                 <input type="date" id="date">
-                <button type="button" onclick="addEntry()">Add Entry</button>
+                <button type="button" id="addBtn">Add Entry</button>
                 <div class="uda-display" id="udaDisplay">UDA Value: £8</div>
-                <button type="button" onclick="changeUDAValue()" class="change-btn">Change Value</button>
+                <button type="button" id="changeBtn" class="change-btn">Change Value</button>
             </div>
 
             <div class="card">
@@ -345,13 +345,16 @@
         let entries = JSON.parse(localStorage.getItem('udaTrackerEntries')) || [];
 
         function setUDAValue() {
-            const value = parseFloat(document.getElementById('udaValueInput').value);
+            const input = document.getElementById('udaValueInput');
+            const value = parseFloat(input.value);
+            
             if (!value || value <= 0) {
                 alert('Please enter a valid UDA value');
                 return;
             }
+            
             UDA_VALUE = value;
-            localStorage.setItem('udaValue', value);
+            localStorage.setItem('udaValue', value.toString());
             showMainApp();
         }
 
@@ -359,6 +362,7 @@
             document.getElementById('setupScreen').classList.remove('hidden');
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('udaValueInput').value = UDA_VALUE;
+            document.getElementById('udaValueInput').focus();
         }
 
         function showMainApp() {
@@ -414,15 +418,14 @@
 
         function updateTotalUDAs() {
             let total = 0;
-            Object.keys(BAND_VALUES).forEach(band => {
+            ['band1', 'band2a', 'band2b', 'band2c', 'band3'].forEach(band => {
                 const elem = document.getElementById(band);
                 if (elem) {
                     const qty = parseInt(elem.value) || 0;
                     total += qty * BAND_VALUES[band];
                 }
             });
-            const totalElem = document.getElementById('totalUDAs');
-            if (totalElem) totalElem.textContent = total;
+            document.getElementById('totalUDAs').textContent = total;
         }
 
         function updateTodayEarnings() {
@@ -579,7 +582,13 @@
             }).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners
+            document.getElementById('startBtn').addEventListener('click', setUDAValue);
+            document.getElementById('changeBtn').addEventListener('click', changeUDAValue);
+            document.getElementById('addBtn').addEventListener('click', addEntry);
+
             ['band1', 'band2a', 'band2b', 'band2c', 'band3'].forEach(band => {
                 const elem = document.getElementById(band);
                 if (elem) {
@@ -593,8 +602,11 @@
             if (weekPicker) weekPicker.addEventListener('change', updateSelectedWeekEarnings);
             if (monthPicker) monthPicker.addEventListener('change', updateSelectedMonthEarnings);
 
+            // Check if already set up
             if (localStorage.getItem('udaValue')) {
                 showMainApp();
+            } else {
+                document.getElementById('udaValueInput').focus();
             }
         });
     </script>
