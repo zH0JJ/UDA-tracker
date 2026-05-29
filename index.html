@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="UDA Tracker">
+    <meta name="theme-color" content="#0f0f0f">
+    <link rel="manifest" href="data:application/json,{\"name\":\"UDA Tracker\",\"short_name\":\"UDA Tracker\",\"description\":\"Track your UDA production by band\",\"display\":\"standalone\",\"background_color\":\"#0f0f0f\",\"theme_color\":\"#00d4ff\",\"orientation\":\"portrait-primary\"}">
+    <title>UDA Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            padding: 12px;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px 0;
+        }
+        .header h1 {
+            font-size: 1.6em;
+            margin-bottom: 3px;
+            background: linear-gradient(135deg, #00d4ff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+        .header p {
+            font-size: 0.8em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #333;
+        }
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 14px;
+            font-size: 0.95em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .band-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .band-label {
+            flex: 0 0 60px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #a78bfa;
+        }
+        input[type="number"],
+        input[type="week"],
+        input[type="month"],
+        input[type="date"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #0f0f0f;
+            color: #fff;
+            font-size: 14px;
+        }
+        input[type="number"]:focus,
+        input[type="week"]:focus,
+        input[type="month"]:focus,
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: #151515;
+        }
+        button {
+            background: linear-gradient(135deg, #00d4ff 0%, #a78bfa 100%);
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:active { transform: scale(0.95); }
+        .summary {
+            background: linear-gradient(135deg, #00d4ff22 0%, #a78bfa22 100%);
+            border: 1px solid #00d4ff44;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 12px 0;
+        }
+        .summary-label {
+            font-size: 0.75em;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .summary-value {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .dual-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .entries { margin-top: 12px; }
+        .entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #151515;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #333;
+            border-left: 3px solid #00d4ff;
+            gap: 8px;
+        }
+        .entry-info { flex: 1; min-width: 0; }
+        .entry-date {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95em;
+        }
+        .entry-bands {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 2px;
+        }
+        .entry-total {
+            font-weight: 700;
+            color: #00d4ff;
+            font-size: 1em;
+            flex-shrink: 0;
+        }
+        .delete-btn {
+            background: #ff006e;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75em;
+            font-weight: 600;
+            flex-shrink: 0;
+            width: auto;
+            margin: 0;
+        }
+        .delete-btn:active { background: #ff1a7f; }
+        .empty {
+            color: #666;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        .hidden { display: none; }
+        .setup-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+        .setup-screen .card { margin-top: 40px; }
+        .info-text {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+        .uda-display {
+            font-size: 0.9em;
+            color: #a78bfa;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        .change-btn {
+            background: #666 !important;
+            margin-top: 5px !important;
+            font-size: 12px !important;
+            padding: 8px 12px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="setupScreen" class="setup-screen">
+            <div class="header">
+                <h1>UDA Tracker</h1>
+                <p>Production Tracker</p>
+            </div>
+            <div class="card">
+                <h2>Set Your UDA Value</h2>
+                <p class="info-text">Enter your UDA value in pounds (£). This is used to calculate your earnings.</p>
+                <div class="band-row" style="margin-top: 20px;">
+                    <span style="flex: 0 0 20px;">£</span>
+                    <input type="number" id="udaValueInput" placeholder="e.g. 8" min="0" step="0.01" value="8">
+                </div>
+                <button type="button" onclick="setUDAValue()">Start Tracking</button>
+            </div>
+        </div>
+
+        <div id="mainApp" class="hidden">
+            <div class="header">
+                <h1>UDA Tracker</h1>
+                <p>Production Tracker</p>
+            </div>
+
+            <div class="card">
+                <h2>New Entry</h2>
+                <div class="band-row">
+                    <div class="band-label">Band 1</div>
+                    <input type="number" id="band1" placeholder="0" min="0" value="0">
+                </div>
+                <div class="band-row">
+                    <div class="band-label">Band 2a</div>
+                    <input type="number" id="band2a" placeholder="0" min="0" value="0">
+                </div>
+                <div class="band-row">
+                    <div class="band-label">Band 2b</div>
+                    <input type="number" id="band2b" placeholder="0" min="0" value="0">
+                </div>
+                <div class="band-row">
+                    <div class="band-label">Band 2c</div>
+                    <input type="number" id="band2c" placeholder="0" min="0" value="0">
+                </div>
+                <div class="band-row">
+                    <div class="band-label">Band 3</div>
+                    <input type="number" id="band3" placeholder="0" min="0" value="0">
+                </div>
+                <div class="summary">
+                    <div class="summary-label">Total UDAs</div>
+                    <div class="summary-value" id="totalUDAs">0</div>
+                </div>
+                <input type="date" id="date">
+                <button type="button" onclick="addEntry()">Add Entry</button>
+                <div class="uda-display" id="udaDisplay">UDA Value: £8</div>
+                <button type="button" onclick="changeUDAValue()" class="change-btn">Change Value</button>
+            </div>
+
+            <div class="card">
+                <h2>This Week's Earnings</h2>
+                <div class="dual-summary">
+                    <div class="summary">
+                        <div class="summary-label">Total UDAs</div>
+                        <div class="summary-value" id="todayUDAs">0</div>
+                    </div>
+                    <div class="summary">
+                        <div class="summary-label">Earnings</div>
+                        <div class="summary-value" id="todayEarnings">£0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>This Month's Earnings</h2>
+                <div class="dual-summary">
+                    <div class="summary">
+                        <div class="summary-label">Total UDAs</div>
+                        <div class="summary-value" id="thisMonthUDAs">0</div>
+                    </div>
+                    <div class="summary">
+                        <div class="summary-label">Earnings</div>
+                        <div class="summary-value" id="thisMonthEarnings">£0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>View By Week</h2>
+                <div class="band-row">
+                    <input type="week" id="weekPicker">
+                </div>
+                <div class="dual-summary">
+                    <div class="summary">
+                        <div class="summary-label">UDAs</div>
+                        <div class="summary-value" id="selectedWeekUDAs">0</div>
+                    </div>
+                    <div class="summary">
+                        <div class="summary-label">Earnings</div>
+                        <div class="summary-value" id="selectedWeekEarnings">£0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>View By Month</h2>
+                <div class="band-row">
+                    <input type="month" id="monthPicker">
+                </div>
+                <div class="dual-summary">
+                    <div class="summary">
+                        <div class="summary-label">UDAs</div>
+                        <div class="summary-value" id="selectedMonthUDAs">0</div>
+                    </div>
+                    <div class="summary">
+                        <div class="summary-label">Earnings</div>
+                        <div class="summary-value" id="selectedMonthEarnings">£0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Recent Entries</h2>
+                <div id="entriesList" class="entries"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BAND_VALUES = {
+            band1: 1,
+            band2a: 3,
+            band2b: 5,
+            band2c: 7,
+            band3: 12
+        };
+
+        let UDA_VALUE = parseFloat(localStorage.getItem('udaValue')) || 8;
+        let entries = JSON.parse(localStorage.getItem('udaTrackerEntries')) || [];
+
+        function setUDAValue() {
+            const value = parseFloat(document.getElementById('udaValueInput').value);
+            if (!value || value <= 0) {
+                alert('Please enter a valid UDA value');
+                return;
+            }
+            UDA_VALUE = value;
+            localStorage.setItem('udaValue', value);
+            showMainApp();
+        }
+
+        function changeUDAValue() {
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('udaValueInput').value = UDA_VALUE;
+        }
+
+        function showMainApp() {
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            initialize();
+        }
+
+        function initialize() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+            
+            const currentWeek = getWeekString(new Date());
+            document.getElementById('weekPicker').value = currentWeek;
+            
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            document.getElementById('monthPicker').value = currentMonth;
+
+            updateUDADisplay();
+            updateTotalUDAs();
+            updateTodayEarnings();
+            updateThisMonthEarnings();
+            updateSelectedWeekEarnings();
+            updateSelectedMonthEarnings();
+            displayEntries();
+        }
+
+        function updateUDADisplay() {
+            document.getElementById('udaDisplay').textContent = `UDA Value: £${UDA_VALUE.toFixed(2)}`;
+        }
+
+        function getWeekString(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const dayNum = d.getDay();
+            const diff = d.getDate() - dayNum + (dayNum === 0 ? -6 : 1);
+            const monday = new Date(d.setDate(diff));
+            const week = Math.ceil((((monday - new Date(monday.getFullYear(), 0, 1)) / 86400000) + 1) / 7);
+            return `${year}-W${String(week).padStart(2, '0')}`;
+        }
+
+        function getWeekDates(weekString) {
+            const [year, week] = weekString.split('-W');
+            const simple = new Date(year, 0, 1 + (parseInt(week) - 1) * 7);
+            const dow = simple.getDay();
+            const ISOweekStart = simple;
+            if (dow <= 4)
+                ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+            else
+                ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+            return ISOweekStart;
+        }
+
+        function updateTotalUDAs() {
+            let total = 0;
+            Object.keys(BAND_VALUES).forEach(band => {
+                const elem = document.getElementById(band);
+                if (elem) {
+                    const qty = parseInt(elem.value) || 0;
+                    total += qty * BAND_VALUES[band];
+                }
+            });
+            const totalElem = document.getElementById('totalUDAs');
+            if (totalElem) totalElem.textContent = total;
+        }
+
+        function updateTodayEarnings() {
+            const today = new Date().toISOString().split('T')[0];
+            let todayTotal = 0;
+            entries.forEach(e => {
+                if (e.date === today) {
+                    todayTotal += e.totalUDAs;
+                }
+            });
+            const earnings = todayTotal * UDA_VALUE;
+            document.getElementById('todayUDAs').textContent = todayTotal;
+            document.getElementById('todayEarnings').textContent = `£${earnings.toFixed(2)}`;
+        }
+
+        function updateThisMonthEarnings() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
+            let monthTotal = 0;
+            entries.forEach(e => {
+                const entryDate = new Date(e.date);
+                if (entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth) {
+                    monthTotal += e.totalUDAs;
+                }
+            });
+            const earnings = monthTotal * UDA_VALUE;
+            document.getElementById('thisMonthUDAs').textContent = monthTotal;
+            document.getElementById('thisMonthEarnings').textContent = `£${earnings.toFixed(2)}`;
+        }
+
+        function updateSelectedWeekEarnings() {
+            const weekPicker = document.getElementById('weekPicker');
+            if (!weekPicker || !weekPicker.value) return;
+            const weekString = weekPicker.value;
+            const weekStart = getWeekDates(weekString);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            let weekTotal = 0;
+            entries.forEach(e => {
+                const entryDate = new Date(e.date);
+                if (entryDate >= weekStart && entryDate <= weekEnd) {
+                    weekTotal += e.totalUDAs;
+                }
+            });
+            const earnings = weekTotal * UDA_VALUE;
+            document.getElementById('selectedWeekUDAs').textContent = weekTotal;
+            document.getElementById('selectedWeekEarnings').textContent = `£${earnings.toFixed(2)}`;
+        }
+
+        function updateSelectedMonthEarnings() {
+            const monthPicker = document.getElementById('monthPicker');
+            if (!monthPicker || !monthPicker.value) return;
+            const monthString = monthPicker.value;
+            const [year, month] = monthString.split('-');
+            let selectedTotal = 0;
+            entries.forEach(e => {
+                const entryDate = new Date(e.date);
+                if (entryDate.getFullYear() === parseInt(year) && entryDate.getMonth() === parseInt(month) - 1) {
+                    selectedTotal += e.totalUDAs;
+                }
+            });
+            const earnings = selectedTotal * UDA_VALUE;
+            document.getElementById('selectedMonthUDAs').textContent = selectedTotal;
+            document.getElementById('selectedMonthEarnings').textContent = `£${earnings.toFixed(2)}`;
+        }
+
+        function addEntry() {
+            const band1 = parseInt(document.getElementById('band1').value) || 0;
+            const band2a = parseInt(document.getElementById('band2a').value) || 0;
+            const band2b = parseInt(document.getElementById('band2b').value) || 0;
+            const band2c = parseInt(document.getElementById('band2c').value) || 0;
+            const band3 = parseInt(document.getElementById('band3').value) || 0;
+            const date = document.getElementById('date').value;
+
+            const totalUDAs = (band1 * 1) + (band2a * 3) + (band2b * 5) + (band2c * 7) + (band3 * 12);
+
+            if (totalUDAs === 0) {
+                alert('Select at least one item');
+                return;
+            }
+
+            if (!date) {
+                alert('Select a date');
+                return;
+            }
+
+            entries.push({
+                id: Date.now(),
+                date,
+                band1,
+                band2a,
+                band2b,
+                band2c,
+                band3,
+                totalUDAs
+            });
+
+            entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+            localStorage.setItem('udaTrackerEntries', JSON.stringify(entries));
+
+            document.getElementById('band1').value = '0';
+            document.getElementById('band2a').value = '0';
+            document.getElementById('band2b').value = '0';
+            document.getElementById('band2c').value = '0';
+            document.getElementById('band3').value = '0';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+            updateTotalUDAs();
+
+            displayEntries();
+            updateTodayEarnings();
+            updateThisMonthEarnings();
+            updateSelectedWeekEarnings();
+            updateSelectedMonthEarnings();
+        }
+
+        function deleteEntry(id) {
+            entries = entries.filter(e => e.id !== id);
+            localStorage.setItem('udaTrackerEntries', JSON.stringify(entries));
+            displayEntries();
+            updateTodayEarnings();
+            updateThisMonthEarnings();
+            updateSelectedWeekEarnings();
+            updateSelectedMonthEarnings();
+        }
+
+        function displayEntries() {
+            const list = document.getElementById('entriesList');
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty">No entries yet</div>';
+                return;
+            }
+
+            list.innerHTML = entries.map(e => {
+                const bandSummary = [
+                    e.band1 > 0 ? `B1:${e.band1}` : '',
+                    e.band2a > 0 ? `2a:${e.band2a}` : '',
+                    e.band2b > 0 ? `2b:${e.band2b}` : '',
+                    e.band2c > 0 ? `2c:${e.band2c}` : '',
+                    e.band3 > 0 ? `B3:${e.band3}` : ''
+                ].filter(x => x).join(' • ');
+
+                return `
+                    <div class="entry">
+                        <div class="entry-info">
+                            <div class="entry-date">${new Date(e.date).toLocaleDateString()}</div>
+                            <div class="entry-bands">${bandSummary}</div>
+                        </div>
+                        <div class="entry-total">${e.totalUDAs}</div>
+                        <button class="delete-btn" type="button" onclick="deleteEntry(${e.id})">Del</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            ['band1', 'band2a', 'band2b', 'band2c', 'band3'].forEach(band => {
+                const elem = document.getElementById(band);
+                if (elem) {
+                    elem.addEventListener('change', updateTotalUDAs);
+                    elem.addEventListener('input', updateTotalUDAs);
+                }
+            });
+
+            const weekPicker = document.getElementById('weekPicker');
+            const monthPicker = document.getElementById('monthPicker');
+            if (weekPicker) weekPicker.addEventListener('change', updateSelectedWeekEarnings);
+            if (monthPicker) monthPicker.addEventListener('change', updateSelectedMonthEarnings);
+
+            if (localStorage.getItem('udaValue')) {
+                showMainApp();
+            }
+        });
+    </script>
+</body>
+</html>
