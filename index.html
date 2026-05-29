@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="UDA Tracker">
     <meta name="theme-color" content="#0f0f0f">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <title>UDA Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,6 +39,31 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+        .menu-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .menu-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 100px;
+        }
+        .menu-btn.active {
+            background: linear-gradient(135deg, #00d4ff 0%, #a78bfa 100%);
+            color: #000;
+            border-color: #00d4ff;
+        }
+        .menu-btn:active { transform: scale(0.95); }
         .card {
             background: #1a1a1a;
             border-radius: 12px;
@@ -60,7 +86,7 @@
             align-items: center;
         }
         .band-label {
-            flex: 0 0 60px;
+            flex: 0 0 100px;
             font-weight: 600;
             font-size: 0.9em;
             color: #a78bfa;
@@ -98,7 +124,6 @@
             margin-top: 10px;
         }
         button:active { transform: scale(0.95); }
-        button:hover { opacity: 0.9; }
         .summary {
             background: linear-gradient(135deg, #00d4ff22 0%, #a78bfa22 100%);
             border: 1px solid #00d4ff44;
@@ -125,6 +150,12 @@
         .dual-summary {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .triple-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
             margin: 12px 0;
         }
@@ -205,6 +236,34 @@
             font-size: 12px !important;
             padding: 8px 12px !important;
         }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .breakdown-item {
+            background: #151515;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+        .breakdown-label {
+            font-size: 0.75em;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .breakdown-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #00d4ff;
+        }
     </style>
 </head>
 <body>
@@ -231,103 +290,176 @@
                 <p>Production Tracker</p>
             </div>
 
-            <div class="card">
-                <h2>New Entry</h2>
-                <div class="band-row">
-                    <div class="band-label">Band 1</div>
-                    <input type="number" id="band1" placeholder="0" min="0" value="0">
-                </div>
-                <div class="band-row">
-                    <div class="band-label">Band 2a</div>
-                    <input type="number" id="band2a" placeholder="0" min="0" value="0">
-                </div>
-                <div class="band-row">
-                    <div class="band-label">Band 2b</div>
-                    <input type="number" id="band2b" placeholder="0" min="0" value="0">
-                </div>
-                <div class="band-row">
-                    <div class="band-label">Band 2c</div>
-                    <input type="number" id="band2c" placeholder="0" min="0" value="0">
-                </div>
-                <div class="band-row">
-                    <div class="band-label">Band 3</div>
-                    <input type="number" id="band3" placeholder="0" min="0" value="0">
-                </div>
-                <div class="summary">
-                    <div class="summary-label">Total UDAs</div>
-                    <div class="summary-value" id="totalUDAs">0</div>
-                </div>
-                <input type="date" id="date">
-                <button type="button" id="addBtn">Add Entry</button>
-                <div class="uda-display" id="udaDisplay">UDA Value: £8</div>
-                <button type="button" id="changeBtn" class="change-btn">Change Value</button>
+            <div class="menu-bar">
+                <button type="button" class="menu-btn active" onclick="switchTab('tracker')">Tracker</button>
+                <button type="button" class="menu-btn" onclick="switchTab('financials')">Financials</button>
+                <button type="button" class="menu-btn" onclick="switchTab('yearly')">Yearly</button>
             </div>
 
-            <div class="card">
-                <h2>This Week's Earnings</h2>
-                <div class="dual-summary">
+            <!-- TRACKER TAB -->
+            <div id="trackerTab">
+                <div class="card">
+                    <h2>New Entry</h2>
+                    <div class="band-row">
+                        <div class="band-label">Band 1</div>
+                        <input type="number" id="band1" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="band-row">
+                        <div class="band-label">Band 2a</div>
+                        <input type="number" id="band2a" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="band-row">
+                        <div class="band-label">Band 2b</div>
+                        <input type="number" id="band2b" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="band-row">
+                        <div class="band-label">Band 2c</div>
+                        <input type="number" id="band2c" placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="band-row">
+                        <div class="band-label">Band 3</div>
+                        <input type="number" id="band3" placeholder="0" min="0" value="0">
+                    </div>
                     <div class="summary">
                         <div class="summary-label">Total UDAs</div>
-                        <div class="summary-value" id="todayUDAs">0</div>
+                        <div class="summary-value" id="totalUDAs">0</div>
                     </div>
-                    <div class="summary">
-                        <div class="summary-label">Earnings</div>
-                        <div class="summary-value" id="todayEarnings">£0</div>
+                    <input type="date" id="date">
+                    <button type="button" id="addBtn">Add Entry</button>
+                    <div class="uda-display" id="udaDisplay">UDA Value: £8</div>
+                    <button type="button" id="changeBtn" class="change-btn">Change Value</button>
+                </div>
+
+                <div class="card">
+                    <h2>This Week's Earnings</h2>
+                    <div class="dual-summary">
+                        <div class="summary">
+                            <div class="summary-label">Total UDAs</div>
+                            <div class="summary-value" id="todayUDAs">0</div>
+                        </div>
+                        <div class="summary">
+                            <div class="summary-label">Earnings</div>
+                            <div class="summary-value" id="todayEarnings">£0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>This Month's Earnings</h2>
+                    <div class="dual-summary">
+                        <div class="summary">
+                            <div class="summary-label">Total UDAs</div>
+                            <div class="summary-value" id="thisMonthUDAs">0</div>
+                        </div>
+                        <div class="summary">
+                            <div class="summary-label">Earnings</div>
+                            <div class="summary-value" id="thisMonthEarnings">£0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>View By Week</h2>
+                    <div class="band-row">
+                        <input type="week" id="weekPicker">
+                    </div>
+                    <div class="dual-summary">
+                        <div class="summary">
+                            <div class="summary-label">UDAs</div>
+                            <div class="summary-value" id="selectedWeekUDAs">0</div>
+                        </div>
+                        <div class="summary">
+                            <div class="summary-label">Earnings</div>
+                            <div class="summary-value" id="selectedWeekEarnings">£0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>View By Month</h2>
+                    <div class="band-row">
+                        <input type="month" id="monthPicker">
+                    </div>
+                    <div class="dual-summary">
+                        <div class="summary">
+                            <div class="summary-label">UDAs</div>
+                            <div class="summary-value" id="selectedMonthUDAs">0</div>
+                        </div>
+                        <div class="summary">
+                            <div class="summary-label">Earnings</div>
+                            <div class="summary-value" id="selectedMonthEarnings">£0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Recent Entries</h2>
+                    <div id="entriesList" class="entries"></div>
+                </div>
+            </div>
+
+            <!-- FINANCIALS TAB -->
+            <div id="financialsTab" class="hidden">
+                <div class="card">
+                    <h2>Monthly Financials</h2>
+                    <div class="band-row">
+                        <div class="band-label">Lab Fee</div>
+                        <span style="flex: 0 0 20px;">£</span>
+                        <input type="number" id="labFee" placeholder="0" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="band-row">
+                        <div class="band-label">Superannuation</div>
+                        <span style="flex: 0 0 20px;">£</span>
+                        <input type="number" id="superannuation" placeholder="0" min="0" step="0.01" value="0">
+                    </div>
+                    <button type="button" id="calculateBtn">Calculate</button>
+                </div>
+
+                <div class="card" id="financialResults" style="display: none;">
+                    <h2>This Month - Breakdown</h2>
+                    <div class="breakdown">
+                        <div class="breakdown-item">
+                            <div class="breakdown-label">Gross Earnings</div>
+                            <div class="breakdown-value" id="grossEarnings">£0</div>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-label">Lab Fee</div>
+                            <div class="breakdown-value" id="labFeeDisplay">£0</div>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-label">Superannuation</div>
+                            <div class="breakdown-value" id="superDisplay">£0</div>
+                        </div>
+                        <div class="breakdown-item">
+                            <div class="breakdown-label">Net Income</div>
+                            <div class="breakdown-value" id="netIncome">£0</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>This Month's Earnings</h2>
-                <div class="dual-summary">
-                    <div class="summary">
-                        <div class="summary-label">Total UDAs</div>
-                        <div class="summary-value" id="thisMonthUDAs">0</div>
-                    </div>
-                    <div class="summary">
-                        <div class="summary-label">Earnings</div>
-                        <div class="summary-value" id="thisMonthEarnings">£0</div>
+            <!-- YEARLY TAB -->
+            <div id="yearlyTab" class="hidden">
+                <div class="card">
+                    <h2>Yearly Earnings Graph</h2>
+                    <div class="chart-container">
+                        <canvas id="yearlyChart"></canvas>
                     </div>
                 </div>
-            </div>
 
-            <div class="card">
-                <h2>View By Week</h2>
-                <div class="band-row">
-                    <input type="week" id="weekPicker">
-                </div>
-                <div class="dual-summary">
-                    <div class="summary">
-                        <div class="summary-label">UDAs</div>
-                        <div class="summary-value" id="selectedWeekUDAs">0</div>
-                    </div>
-                    <div class="summary">
-                        <div class="summary-label">Earnings</div>
-                        <div class="summary-value" id="selectedWeekEarnings">£0</div>
+                <div class="card">
+                    <h2>Yearly Summary</h2>
+                    <div class="dual-summary">
+                        <div class="summary">
+                            <div class="summary-label">Total UDAs</div>
+                            <div class="summary-value" id="yearlyUDAs">0</div>
+                        </div>
+                        <div class="summary">
+                            <div class="summary-label">Annual Earnings</div>
+                            <div class="summary-value" id="yearlyEarnings">£0</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="card">
-                <h2>View By Month</h2>
-                <div class="band-row">
-                    <input type="month" id="monthPicker">
-                </div>
-                <div class="dual-summary">
-                    <div class="summary">
-                        <div class="summary-label">UDAs</div>
-                        <div class="summary-value" id="selectedMonthUDAs">0</div>
-                    </div>
-                    <div class="summary">
-                        <div class="summary-label">Earnings</div>
-                        <div class="summary-value" id="selectedMonthEarnings">£0</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Recent Entries</h2>
-                <div id="entriesList" class="entries"></div>
             </div>
         </div>
     </div>
@@ -343,6 +475,7 @@
 
         let UDA_VALUE = parseFloat(localStorage.getItem('udaValue')) || 8;
         let entries = JSON.parse(localStorage.getItem('udaTrackerEntries')) || [];
+        let yearlyChart = null;
 
         function setUDAValue() {
             const input = document.getElementById('udaValueInput');
@@ -369,6 +502,26 @@
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             initialize();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('trackerTab').classList.add('hidden');
+            document.getElementById('financialsTab').classList.add('hidden');
+            document.getElementById('yearlyTab').classList.add('hidden');
+
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+
+            if (tab === 'tracker') {
+                document.getElementById('trackerTab').classList.remove('hidden');
+                document.querySelectorAll('.menu-btn')[0].classList.add('active');
+            } else if (tab === 'financials') {
+                document.getElementById('financialsTab').classList.remove('hidden');
+                document.querySelectorAll('.menu-btn')[1].classList.add('active');
+            } else if (tab === 'yearly') {
+                document.getElementById('yearlyTab').classList.remove('hidden');
+                document.querySelectorAll('.menu-btn')[2].classList.add('active');
+                updateYearlyGraph();
+            }
         }
 
         function initialize() {
@@ -493,6 +646,93 @@
             document.getElementById('selectedMonthEarnings').textContent = `£${earnings.toFixed(2)}`;
         }
 
+        function calculateFinancials() {
+            const labFee = parseFloat(document.getElementById('labFee').value) || 0;
+            const superannuation = parseFloat(document.getElementById('superannuation').value) || 0;
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
+            let monthTotal = 0;
+
+            entries.forEach(e => {
+                const entryDate = new Date(e.date);
+                if (entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth) {
+                    monthTotal += e.totalUDAs;
+                }
+            });
+
+            const gross = monthTotal * UDA_VALUE;
+            const superAmount = (gross * superannuation) / 100;
+            const net = gross - labFee - superAmount;
+
+            document.getElementById('grossEarnings').textContent = `£${gross.toFixed(2)}`;
+            document.getElementById('labFeeDisplay').textContent = `£${labFee.toFixed(2)}`;
+            document.getElementById('superDisplay').textContent = `£${superAmount.toFixed(2)}`;
+            document.getElementById('netIncome').textContent = `£${net.toFixed(2)}`;
+            document.getElementById('financialResults').style.display = 'block';
+        }
+
+        function updateYearlyGraph() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const monthlyData = Array(12).fill(0);
+            let yearlyTotal = 0;
+
+            entries.forEach(e => {
+                const entryDate = new Date(e.date);
+                if (entryDate.getFullYear() === currentYear) {
+                    const month = entryDate.getMonth();
+                    monthlyData[month] += e.totalUDAs;
+                    yearlyTotal += e.totalUDAs;
+                }
+            });
+
+            const monthlyEarnings = monthlyData.map(m => (m * UDA_VALUE).toFixed(2));
+
+            document.getElementById('yearlyUDAs').textContent = yearlyTotal;
+            document.getElementById('yearlyEarnings').textContent = `£${(yearlyTotal * UDA_VALUE).toFixed(2)}`;
+
+            const ctx = document.getElementById('yearlyChart');
+            if (yearlyChart) {
+                yearlyChart.destroy();
+            }
+
+            yearlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Earnings (£)',
+                        data: monthlyEarnings,
+                        backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#999' },
+                            grid: { color: '#333' }
+                        },
+                        x: {
+                            ticks: { color: '#999' },
+                            grid: { color: '#333' }
+                        }
+                    }
+                }
+            });
+        }
+
         function addEntry() {
             const band1 = parseInt(document.getElementById('band1').value) || 0;
             const band2a = parseInt(document.getElementById('band2a').value) || 0;
@@ -582,12 +822,11 @@
             }).join('');
         }
 
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Set up event listeners
             document.getElementById('startBtn').addEventListener('click', setUDAValue);
             document.getElementById('changeBtn').addEventListener('click', changeUDAValue);
             document.getElementById('addBtn').addEventListener('click', addEntry);
+            document.getElementById('calculateBtn').addEventListener('click', calculateFinancials);
 
             ['band1', 'band2a', 'band2b', 'band2c', 'band3'].forEach(band => {
                 const elem = document.getElementById(band);
@@ -602,7 +841,6 @@
             if (weekPicker) weekPicker.addEventListener('change', updateSelectedWeekEarnings);
             if (monthPicker) monthPicker.addEventListener('change', updateSelectedMonthEarnings);
 
-            // Check if already set up
             if (localStorage.getItem('udaValue')) {
                 showMainApp();
             } else {
